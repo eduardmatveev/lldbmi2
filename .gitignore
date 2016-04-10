@@ -1,5 +1,5 @@
 /.metadata
 /.settings
 /build
-/logs/*.log
+/logs
 /Notes.txt
