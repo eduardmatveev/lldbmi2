@@ -2,7 +2,6 @@
 #ifndef LLDBMIG_H
 #define LLDBMIG_H
 
-#include <sys/syslimits.h>
 #include <lldb/API/LLDB.h>
 using namespace lldb;
 
@@ -10,7 +9,8 @@ using namespace lldb;
 // PATH_MAX = 1024
 // LINE_MAX = 2048
 // NAME_MAX = 255
-
+#include <sys/syslimits.h>
+#include "stringb.h"
 
 #define WAIT_DATA  0
 #define MORE_DATA  1
@@ -36,12 +36,13 @@ typedef struct {
 	int change_depth_max;
 } LIMITS;
 
+
 // dynamic context
 typedef struct {
-	int  lockcdt;
 	int  ptyfd;
 	bool eof;
 	bool isrunning;
+	bool wanttokill;
 	int test_sequence;
 	char test_script[PATH_MAX];
 	const char *envp[ENV_ENTRIES];
@@ -49,10 +50,9 @@ typedef struct {
 	char envs[BIG_LINE_MAX];
 	char *envspointer;
 	char project_loc[PATH_MAX];
-	char cdtbuffer[BIG_LINE_MAX];		// must be the same size as cdtline in fromCDT
+	StringB cdtbufferB;
 	char cdtptyname[NAME_MAX];
 	char logfilename[PATH_MAX];
-	char logbuffer[BIG_LINE_MAX];
 	const char *gdbPrompt;
 	char lldbmi2Prompt[NAME_MAX];
 	char threadgroup[NAME_MAX];
@@ -62,8 +62,7 @@ typedef struct {
 	int threadids[THREADS_MAX];
 } STATE;
 
-
-const char * logarg        (const char *arg);
+const char * logarg (const char *arg);
 void         writetocdt    (const char *line);
 void         cdtprintf     (const char *format, ... );
 void         signalHandler (int vSigno);

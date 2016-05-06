@@ -1,8 +1,8 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <string.h>
 #include <ctype.h>
+#include <string.h>
 #include <sys/syslimits.h>
 #include "log.h"
 #include "test.h"
@@ -50,6 +50,10 @@ const char *testcommands_THREAD[] = {
 	"79-exec-continue --thread-group i1",
 	"67-stack-list-locals --thread 2 --frame 0 1",
 	"68-stack-list-arguments --thread 2 --frame 0 1",
+	"79-exec-continue --thread-group i1",
+	"55-interpreter-exec --thread-group i1 console kill",
+	"56thread",
+	"79-exec-continue --thread-group i1",
 	"80-gdb-exit",
 	NULL
 };
@@ -404,7 +408,7 @@ const char *testcommands_LO[] = {
 	"51-environment-cd /pro/lo/libreoffice",
 	"52-file-exec-and-symbols --thread-group i1 /pro/lo/libreoffice/instdir/LibreOfficeDev.app/Contents/MacOS/soffice",
 	"53-gdb-set --thread-group i1 args /Users/didier/Projets/LO/documents/Archive.odg",
-	"58-break-insert --thread-group i1 XMLShapeImportHelper::CreateGroupChildContext",	// shapeimport.css:540
+	"58-break-insert --thread-group i1 XMLShapeImportHelper::CreateGroupChildContext",	// shapeimport.css:540 (552)
 	"58-break-insert --thread-group i1 /pro/lo/libreoffice/xmloff/source/draw/shapeimport.cxx:540",
 //	"58-break-insert --thread-group i1 SdXMLGenericPageContext::CreateChildContext",	// ximppage.cxx:262
 //	"58-break-insert --thread-group i1 SdXMLTableShapeContext::StartElement",			// ximpbody.cxx:253
@@ -533,6 +537,16 @@ getTestScriptCommand ()
 			*pe = '\0';
 		}
 		else {									// it is a script file
+			while (isspace(*pl))
+				++pl;
+			if (strncmp(pl,"//",2)==0)
+				return NULL;					// comment line
+			pe = strstr(pl,"//");
+			if (pe!=NULL) {
+				do
+					*pe = '\0';
+				while (isspace(*--pe));
+			}
 			pe = pl + strlen(pl);
 			if (--pe < pl)
 				return NULL;					// empty line
