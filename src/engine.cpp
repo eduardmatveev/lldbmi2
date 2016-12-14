@@ -942,7 +942,7 @@ fromCDT (STATE *pstate, const char *commandLine, int linesize)			// from cdt
 	}
 	else if (strcmp(cc.argv[0],"catch")==0 && strcmp(cc.argv[1],"catch")==0) {
 		SBBreakpoint breakpoint = target.BreakpointCreateForException(lldb::LanguageType::eLanguageTypeC_plus_plus, true, false);
-		
+
 		cdtprintf ("&\"catch catch\\n\"\n");
 		cdtprintf ("~\"Catchpoint %d (catch)\\n\"\n", breakpoint.GetID());
 		cdtprintf ("=breakpoint-created,bkpt={number=\"%d\",type=\"breakpoint\",disp=\"keep\",enabled=\"y\",addr=\"<PENDING>\",what=\"exception catch\",catch-type=\"catch\",times=\"0\"}\n", breakpoint.GetID());
@@ -950,7 +950,7 @@ fromCDT (STATE *pstate, const char *commandLine, int linesize)			// from cdt
 	}
 	else if (strcmp(cc.argv[0],"catch")==0 && strcmp(cc.argv[1],"throw")==0) {
 		SBBreakpoint breakpoint = target.BreakpointCreateForException(lldb::LanguageType::eLanguageTypeC_plus_plus, false, true);
-		
+
 		cdtprintf ("&\"catch throw\\n\"\n");
 		cdtprintf ("~\"Catchpoint %d (throw)\\n\"\n", breakpoint.GetID());
 		cdtprintf ("=breakpoint-created,bkpt={number=\"%d\",type=\"breakpoint\",disp=\"keep\",enabled=\"y\",addr=\"<PENDING>\",what=\"exception throw\",catch-type=\"throw\",times=\"0\"}\n", breakpoint.GetID());
@@ -1006,8 +1006,16 @@ evalCDTCommand (STATE *pstate, const char *cdtcommand, CDT_COMMAND *cc)
 	cc->arguments[0] = '\0';
 	if (cdtcommand[0] == '\0')	// just ENTER
 		return 0;
+	// decode command with sequence number
 	int fields = sscanf (cdtcommand, "%d%[^\0]", &cc->sequence, cc->arguments);
-	if (fields < 2) {
+	if (fields == 0) {
+		// try decode command without sequence number
+		fields = sscanf (cdtcommand, "%[^\0]", cc->arguments);
+		if (fields != 1)
+			return 0;
+		cc->sequence = 0;
+	}
+	else if (fields < 2) {
 		logprintf (LOG_WARN, "invalid command format: ");
 		logdata (LOG_NOHEADER, cdtcommand, strlen(cdtcommand));
 		cdtprintf ("%d^error,msg=\"%s\"\n(gdb)\n", cc->sequence, "invalid command format.");

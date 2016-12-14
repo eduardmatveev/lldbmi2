@@ -8,20 +8,6 @@
 
 extern LIMITS limits;
 
-
-
-// bug struct CD (*cdp)[2]
-// gdb:     -var-create --thread 1 --frame 0 - * cdp		->    name="var4",numchild="1",type="CD (*)[2]"
-//          -var-list-children var4                     	->    numchild="1" ... child={name="var4.*cdp",exp="*cdp",numchild="2",type="CD [2]"
-//          -var-info-path-expression var4.*cdp				->    path_expr="*(cdp)"
-//          -var-create --thread 1 --frame 0 - * &(*(cdp))	->    name="var7",numchild="1",value="0x7fff5fbff500",type="CD (*)[2]"
-//          -var-create --thread 1 --frame 0 - * *(cdp)[0]	->    name="var8",numchild="1",value="{...}",type="CD"
-//          -var-create --thread 1 --frame 0 - * *(cdp)[1]	->    name="var9",numchild="1",value="{...}",type="CD"
-// lldbmi2: -var-create --thread 1 --frame 0 - * cdp		->    name="cdp"  ,numchild="2",type="CD (*)[2]"
-//			-var-list-children cdp			 ->	numchild="2",children=[child={name="cdp[0]",exp="[0]",numchild="2",type="CD"},child={name="cdp[1]",exp="[1]",numchild="2",type="CD"}]"
-//			-var-info-path-expression cdp[0] ->	path_expr="cdp[0]"
-//			-var-info-path-expression cdp[1] ->	path_expr="cdp[1]"
-
 // TODO: implement @ formats for structures like struct S. seems to be a bug in lldb
 bool
 getPeudoArrayVariable (SBFrame frame, const char *expression, SBValue &var)
@@ -309,10 +295,6 @@ updateVarState (SBValue var, int depth)
 }
 
 
-
-// get and correct and expression path
-// correct cd->[] and cd.[] expressions to cd[]
-// TODO: correct for argument like  struct CD (*cd) [2]. in tests.cpp reference works but not pointer
 char *
 formatExpressionPath (SBValue var)
 {
@@ -556,8 +538,12 @@ formatSummary (StringB &summarydescB, SBValue var)
 				getName(var), var.GetNumChildren(), getNameForTypeClass(vartype.GetTypeClass()), getNameForBasicType(vartype.GetBasicType()), vartype.GetByteSize(),
 				getNameForTypeClass(vartype.GetPointeeType().GetTypeClass()), getNameForBasicType(vartype.GetPointeeType().GetBasicType()), vartype.GetPointeeType().GetByteSize());
 	if ((varsummary=var.GetSummary()) != NULL) {				// string
-		summarydescB.append(varsummary+1);						// copy and remove start apostrophe
-		summarydescB.clear(1,summarydescB.size()-1);			// remove trailing apostrophe
+		// copy varsummary in summarydescB.exclude heading & trainling apostrophe. escape inner apostrophes if required
+		for (const char *ps=varsummary+1; *ps&&*(ps+1); ps++) {
+			if (*ps=='"' && *(ps-1)!='\\')
+				summarydescB.append ('\\');
+			summarydescB.append (*ps);
+		}
 		return summarydescB.c_str();
 	}
 	int datasize=0;
